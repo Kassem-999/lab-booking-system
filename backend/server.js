@@ -24,3 +24,9 @@ app.listen(PORT, () => {
 const authRoutes = require('./routes/authRoutes');
 
 app.use('/api/auth', authRoutes);
+app.use('/api/labs', require('./routes/labRoutes'));
+app.use('/api/bookings', require('./routes/bookingRoutes'));
+const cors = require('cors');
+
+// قبول الطلبات من الأنجولار
+app.use(cors());
