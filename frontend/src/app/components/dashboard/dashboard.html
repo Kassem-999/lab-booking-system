@@ -9,6 +9,7 @@
       <button class="nav-item active" (click)="setTab('labs')"><span class="nav-icon">⌂</span>Dashboard</button>
       <button class="nav-item" [class.active]="activeTab === 'equipment'" (click)="setTab('equipment')"><span class="nav-icon">▦</span>Labs &amp; Equipment</button>
       <button class="nav-item" [class.active]="activeTab === 'reservations'" (click)="setTab('reservations')"><span class="nav-icon">▤</span>Reservations</button>
+      <button class="nav-item" [class.active]="activeTab === 'calendar'" (click)="setTab('calendar')"><span class="nav-icon">□</span>Availability calendar</button>
       <button *ngIf="isAdmin" class="nav-item" [class.active]="activeTab === 'users'" (click)="setTab('users')"><span class="nav-icon">♙</span>Users &amp; Roles</button>
     </nav>
 
@@ -39,6 +40,7 @@
       <button [class.selected]="activeTab === 'reservations'" (click)="setTab('reservations')">My Reservations</button>
       <button *ngIf="isManager" [class.selected]="activeTab === 'approvals'" (click)="setTab('approvals')">Pending Approvals <span class="tab-count">{{ pendingReservations.length }}</span></button>
       <button *ngIf="isAdmin" [class.selected]="activeTab === 'users'" (click)="setTab('users')">Manage Users</button>
+      <button [class.selected]="activeTab === 'calendar'" (click)="setTab('calendar')">Calendar</button>
     </div>
 
     <section class="summary-grid">
@@ -53,7 +55,7 @@
         <div class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="loadEquipment()" placeholder="Search labs or bookings..." /></div>
         <select [(ngModel)]="availability" (ngModelChange)="loadEquipment()"><option value="">All statuses</option><option value="available">Available</option><option value="unavailable">Unavailable</option><option value="maintenance">Maintenance</option></select>
         <select [(ngModel)]="sort" (ngModelChange)="loadEquipment()"><option value="newest">Sort by newest</option><option value="alphabetical">Alphabetical</option><option value="availability">Availability</option></select>
-        <button class="primary-button" (click)="equipment.length ? openBooking(equipment[0]) : null">{{ isManager ? '+ Add New Lab' : '+ New Reservation' }}</button>
+        <button class="primary-button" (click)="isAdmin && activeTab === 'users' ? openUserModal() : isManager ? openEquipmentModal() : equipment.length ? openBooking(equipment[0]) : null">{{ isAdmin && activeTab === 'users' ? '+ Add Staff' : isManager ? '+ Add Equipment' : '+ New Reservation' }}</button>
       </div>
 
       <div *ngIf="activeTab === 'labs' || activeTab === 'equipment'">
@@ -86,7 +88,7 @@
       </div>
 
       <div *ngIf="activeTab === 'users' && isAdmin">
-        <div class="table-heading"><div><h2>Users &amp; roles</h2><p>Review the people who can access LabSync.</p></div></div>
+        <div class="table-heading"><div><h2>Users &amp; roles</h2><p>Review the people who can access LabSync.</p></div><button class="primary-button" (click)="openUserModal()">+ Add Staff</button></div>
         <div class="data-table" *ngIf="users.length; else noUsers">
           <div class="table-row user-row table-header"><span>User</span><span>Email</span><span>Role</span><span></span><span></span></div>
           <div class="table-row user-row" *ngFor="let account of users">
@@ -96,16 +98,41 @@
         </div>
         <ng-template #noUsers><div class="empty-state">No users found.</div></ng-template>
       </div>
+
+      <div *ngIf="activeTab === 'calendar'">
+        <div class="table-heading"><div><h2>Availability calendar</h2><p>See approved and pending reservations across the catalog.</p></div><div class="calendar-controls"><button (click)="changeMonth(-1)">‹</button><strong>{{ calendarLabel }}</strong><button (click)="changeMonth(1)">›</button></div></div>
+        <div class="calendar-grid">
+          <div class="calendar-weekday" *ngFor="let day of ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']">{{ day }}</div>
+          <div class="calendar-day" *ngFor="let cell of calendarDays" [class.muted-day]="!cell.currentMonth">
+            <span class="day-number">{{ cell.date.getDate() }}</span>
+            <span class="calendar-event" *ngFor="let item of reservationsForDay(cell.date)" [class]="item.status">{{ item.equipment?.name }}</span>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 </div>
 
-<div class="modal-backdrop" *ngIf="selected">
-  <form class="modal" (ngSubmit)="submitBooking()">
-    <div class="modal-heading"><div><span class="overline">NEW RESERVATION</span><h2>{{ selected?.name }}</h2></div><button type="button" class="close-button" (click)="selected = null">×</button></div>
-    <label>Start date<input type="date" name="startDate" [(ngModel)]="booking.startDate" required /></label>
-    <label>End date<input type="date" name="endDate" [(ngModel)]="booking.endDate" required /></label>
-    <label>Notes<textarea name="notes" [(ngModel)]="booking.notes" placeholder="Add context for the lab team"></textarea></label>
+<div class="modal-backdrop" *ngIf="selected || modalMode === 'user' || modalMode === 'equipment'">
+  <form class="modal" (ngSubmit)="modalMode === 'booking' ? submitBooking() : modalMode === 'user' ? submitUser() : submitEquipment()">
+    <div class="modal-heading"><div><span class="overline">{{ modalMode === 'user' ? 'ADMINISTRATION' : modalMode === 'equipment' ? 'INVENTORY' : 'NEW RESERVATION' }}</span><h2>{{ modalMode === 'user' ? 'Add staff member' : modalMode === 'equipment' ? 'Add equipment' : selected?.name }}</h2></div><button type="button" class="close-button" (click)="selected = null; modalMode = 'booking'">×</button></div>
+    <ng-container *ngIf="modalMode === 'booking'">
+      <label>Start date<input type="date" name="startDate" [(ngModel)]="booking.startDate" required /></label>
+      <label>End date<input type="date" name="endDate" [(ngModel)]="booking.endDate" required /></label>
+      <label>Notes<textarea name="notes" [(ngModel)]="booking.notes" placeholder="Add context for the lab team"></textarea></label>
+    </ng-container>
+    <ng-container *ngIf="modalMode === 'user'">
+      <label>Full name<input name="userName" [(ngModel)]="newUser.name" required placeholder="Staff member name" /></label>
+      <label>Email<input type="email" name="userEmail" [(ngModel)]="newUser.email" required placeholder="staff@university.edu" /></label>
+      <label>Temporary password<input type="password" name="userPassword" [(ngModel)]="newUser.password" required minlength="6" /></label>
+      <label>Role<select name="userRole" [(ngModel)]="newUser.role"><option value="staff">Staff</option><option value="student">Student</option><option value="admin">Admin</option></select></label>
+    </ng-container>
+    <ng-container *ngIf="modalMode === 'equipment'">
+      <label>Name<input name="equipmentName" [(ngModel)]="newEquipment.name" required placeholder="Sony camera, 3D printer..." /></label>
+      <label>Category<input name="equipmentCategory" [(ngModel)]="newEquipment.category" required placeholder="camera" /></label>
+      <label>Description<textarea name="equipmentDescription" [(ngModel)]="newEquipment.description"></textarea></label>
+      <label>Condition<select name="equipmentCondition" [(ngModel)]="newEquipment.condition"><option value="excellent">Excellent</option><option value="good">Good</option><option value="maintenance">Maintenance</option></select></label>
+    </ng-container>
     <div class="modal-actions"><button type="button" class="secondary-button" (click)="selected = null">Cancel</button><button class="primary-button" type="submit">Submit request</button></div>
   </form>
 </div>

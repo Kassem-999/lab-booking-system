@@ -9,4 +9,7 @@ export class UsersService {
   list(): Observable<{ data: User[] }> {
     return this.http.get<{ data: User[] }>('http://localhost:5000/api/users');
   }
+  create(data: { name: string; email: string; password: string; role: User['role'] }): Observable<{ data: User }> {
+    return this.http.post<{ data: User }>('http://localhost:5000/api/users', data);
+  }
 }
