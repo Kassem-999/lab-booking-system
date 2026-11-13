@@ -29,6 +29,10 @@ export class DashboardComponent implements OnInit {
   availability = '';
   sort = 'newest';
   selected: Equipment | null = null;
+  modalMode: 'booking' | 'user' | 'equipment' = 'booking';
+  newUser = { name: '', email: '', password: '', role: 'staff' as User['role'] };
+  newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
+  calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   booking = { startDate: '', endDate: '', notes: '' };
   loading = false;
   message = '';
@@ -54,6 +58,17 @@ export class DashboardComponent implements OnInit {
   get isManager(): boolean { return this.user?.role === 'staff' || this.user?.role === 'admin'; }
   get isAdmin(): boolean { return this.user?.role === 'admin'; }
   get pendingReservations(): Reservation[] { return this.reservations.filter((item) => item.status === 'pending'); }
+  get calendarLabel(): string { return this.calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); }
+  get calendarDays(): Array<{ date: Date; currentMonth: boolean }> {
+    const first = new Date(this.calendarMonth);
+    const start = new Date(first);
+    start.setDate(1 - first.getDay());
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return { date, currentMonth: date.getMonth() === first.getMonth() };
+    });
+  }
 
   loadEquipment(): void {
     this.loading = true;
@@ -76,10 +91,50 @@ export class DashboardComponent implements OnInit {
   }
 
   openBooking(item: Equipment): void {
+    this.modalMode = 'booking';
     this.selected = item;
     this.booking = { startDate: '', endDate: '', notes: '' };
     this.message = '';
     this.error = '';
+  }
+
+  openUserModal(): void {
+    this.modalMode = 'user';
+    this.newUser = { name: '', email: '', password: '', role: 'staff' };
+    this.error = '';
+  }
+
+  openEquipmentModal(): void {
+    this.modalMode = 'equipment';
+    this.newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
+    this.error = '';
+  }
+
+  submitUser(): void {
+    this.usersService.create(this.newUser).subscribe({
+      next: () => { this.selected = null; this.modalMode = 'booking'; this.message = 'Staff account created successfully.'; this.loadUsers(); },
+      error: (error) => this.error = error.error?.message || 'Unable to create account'
+    });
+  }
+
+  submitEquipment(): void {
+    this.equipmentService.create(this.newEquipment).subscribe({
+      next: () => { this.selected = null; this.modalMode = 'booking'; this.message = 'Equipment added successfully.'; this.loadEquipment(); },
+      error: (error) => this.error = error.error?.message || 'Unable to add equipment'
+    });
+  }
+
+  changeMonth(offset: number): void {
+    this.calendarMonth = new Date(this.calendarMonth.getFullYear(), this.calendarMonth.getMonth() + offset, 1);
+  }
+
+  reservationsForDay(date: Date): Reservation[] {
+    return this.reservations.filter((item) => {
+      const start = new Date(item.startDate);
+      const end = new Date(item.endDate);
+      return date >= new Date(start.getFullYear(), start.getMonth(), start.getDate())
+        && date <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    });
   }
 
   submitBooking(): void {
@@ -104,6 +159,7 @@ export class DashboardComponent implements OnInit {
     this.activeTab = tab;
     if (tab === 'reservations' || tab === 'approvals') this.loadReservations();
     if (tab === 'users' && this.isAdmin) this.loadUsers();
+    if (tab === 'calendar') this.loadReservations();
   }
 
   setPage(page: number): void {

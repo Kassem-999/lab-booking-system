@@ -22,4 +22,7 @@ export class EquipmentService {
     Object.entries(filters).forEach(([key, value]) => { if (value) params = params.set(key, value); });
     return this.http.get<{ data: Equipment[]; pagination: { pages: number; total: number } }>(this.apiUrl, { params });
   }
+  create(data: { name: string; category: string; description: string; condition: string; availability: string }): Observable<{ data: Equipment }> {
+    return this.http.post<{ data: Equipment }>(this.apiUrl, data);
+  }
 }
