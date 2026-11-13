@@ -5,24 +5,24 @@ const bookingSchema = new mongoose.Schema(
     lab: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Lab',
-      required: [true, 'المخبر إجباري']
+      required: [true, 'Lab is required']
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'المستخدم إجباري']
+      required: [true, 'User is required']
     },
     date: {
       type: Date,
-      required: [true, 'تاريخ الحجز إجباري']
+      required: [true, 'Booking date is required']
     },
     startTime: {
-      type: String, // مثال: "08:30"
-      required: [true, 'وقت البداية إجباري']
+      type: String,
+      required: [true, 'Start time is required']
     },
     endTime: {
-      type: String, // مثال: "10:30"
-      required: [true, 'وقت النهاية إجباري']
+      type: String,
+      required: [true, 'End time is required']
     },
     status: {
       type: String,
@@ -31,7 +31,7 @@ const bookingSchema = new mongoose.Schema(
     },
     reason: {
       type: String,
-      required: [true, 'سبب الحجز إجباري']
+      required: [true, 'Booking reason is required']
     }
   },
   { timestamps: true }

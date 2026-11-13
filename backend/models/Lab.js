@@ -4,13 +4,13 @@ const labSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'اسم المخبر إجباري'],
+      required: [true, 'Lab name is required'],
       trim: true,
       unique: true
     },
     capacity: {
       type: Number,
-      required: [true, 'طاقة الاستيعاب إجبارية']
+      required: [true, 'Capacity is required']
     },
     equipment: [
       {

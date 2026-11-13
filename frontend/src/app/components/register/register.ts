@@ -1,43 +1,30 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './register.html',
   styleUrl: './register.css'
 })
 export class RegisterComponent {
-  name = '';
-  email = '';
-  password = '';
+  form = { name: '', email: '', password: '' };
   errorMessage = '';
-
-  private http = inject(HttpClient);
+  isLoading = false;
+  private auth = inject(AuthService);
   private router = inject(Router);
 
-  onRegister() {
+  register(): void {
+    if (this.isLoading) return;
     this.errorMessage = '';
-    const userData = {
-      name: this.name,
-      email: this.email,
-      password: this.password
-    };
-
-    this.http.post<any>('http://localhost:5000/api/auth/register', userData).subscribe({
-      next: (res) => {
-        // Tsajjel el token w el user w t3addi lel dashboard direct
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
-        this.router.navigate(['/dashboard']);
-      },
-      error: (err) => {
-        this.errorMessage = err.error?.message || 'Erreur lors de l’inscription';
-      }
+    this.isLoading = true;
+    this.auth.register(this.form).subscribe({
+      next: () => { this.isLoading = false; void this.router.navigate(['/dashboard']); },
+      error: (error) => { this.isLoading = false; this.errorMessage = error.error?.message || 'Unable to create account'; }
     });
   }
 }

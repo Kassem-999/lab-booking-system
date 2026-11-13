@@ -1,0 +1,42 @@
+<div class="landing">
+  <nav class="landing-nav">
+    <a class="brand" href="#top"><span class="brand-mark">L</span><span><strong>LabSync</strong><small>Lab Booking System</small></span></a>
+    <div class="nav-links">
+      <a href="#about">About us</a>
+      <a href="#blog">Blog</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="nav-actions">
+      <button class="link-button" (click)="goTo('/login')">Log in</button>
+      <button class="primary-button" (click)="goTo('/register')">Create account</button>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-copy">
+      <span class="eyebrow">SMARTER UNIVERSITY LABS</span>
+      <h1>Make every lab resource easier to access.</h1>
+      <p>LabSync helps students, staff, and administrators discover equipment, request reservations, and keep university labs running smoothly.</p>
+      <div class="hero-actions"><button class="primary-button large" (click)="goTo('/register')">Start booking <span>→</span></button><button class="outline-button large" (click)="goTo('/login')">Explore the platform</button></div>
+      <div class="hero-proof"><span>✓ Live availability</span><span>✓ Approval workflows</span><span>✓ Role-based access</span></div>
+    </div>
+    <div class="hero-visual">
+      <div class="visual-glow"></div>
+      <div class="dashboard-preview">
+        <div class="preview-top"><span class="preview-dots">● ● ●</span><span>LabSync overview</span><span>•••</span></div>
+        <div class="preview-title">Good morning, researcher <span>✦</span></div>
+        <div class="preview-stats"><div><small>Available equipment</small><strong>128</strong><span>↗ 12% this month</span></div><div><small>Active bookings</small><strong>24</strong><span>On schedule</span></div></div>
+        <div class="preview-chart"><span class="chart-label">Reservations activity</span><div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="preview-list"><div><span class="mini-icon blue">▦</span><span><strong>DSLR Camera Kit</strong><small>Available now</small></span><b>Book</b></div><div><span class="mini-icon purple">◇</span><span><strong>3D Printer Pro</strong><small>Next slot: Tomorrow</small></span><b>View</b></div></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="feature-strip"><div><strong>One workspace for every lab</strong><span>From discovery to return, keep the full booking journey visible.</span></div><div><strong>Built for university teams</strong><span>Clear roles and approvals help everyone work with confidence.</span></div><div><strong>Less admin, more research</strong><span>Spend time on projects instead of chasing spreadsheets.</span></div></section>
+
+  <section class="info-section" id="about"><div class="section-copy"><span class="eyebrow">ABOUT LABSYNC</span><h2>A better way to manage shared resources.</h2><p>LabSync brings equipment, labs, reservations, and people together in a focused workspace designed for academic teams.</p></div><div class="info-cards"><article><span>01</span><h3>Discover</h3><p>Search equipment by category, availability, and condition before you make a request.</p></article><article><span>02</span><h3>Reserve</h3><p>Choose your dates, add context, and receive a clear approval status from the lab team.</p></article><article><span>03</span><h3>Coordinate</h3><p>Staff and admins manage inventory, users, approvals, and returns from one place.</p></article></div></section>
+
+  <section class="blog-section" id="blog"><div class="section-heading"><div><span class="eyebrow">FROM THE LAB</span><h2>Small ideas, better lab work.</h2></div><a href="#contact">Talk to our team →</a></div><div class="blog-grid"><article><span class="blog-tag">OPERATIONS</span><h3>How clear availability improves student projects</h3><p>Simple, live information helps teams plan better and reduces last-minute conflicts.</p></article><article><span class="blog-tag">GUIDE</span><h3>Preparing equipment for a smooth handover</h3><p>A practical checklist for keeping shared cameras, printers, and kits ready to use.</p></article><article><span class="blog-tag">COMMUNITY</span><h3>Building a culture of responsible access</h3><p>Good booking workflows make shared resources more useful for everyone.</p></article></div></section>
+
+  <footer class="landing-footer" id="contact"><div><a class="brand" href="#top"><span class="brand-mark">L</span><span><strong>LabSync</strong><small>Lab Booking System</small></span></a><p>Making university labs easier to use, manage, and share.</p></div><div><strong>Contact</strong><a href="mailto:hello@labsync.edu">hello@labsync.edu</a><a href="tel:+21670000000">+216 70 000 000</a></div><div><strong>Platform</strong><a href="#about">About us</a><a href="#blog">Lab notes</a><a (click)="goTo('/login')">Sign in</a></div></footer>
+</div>
