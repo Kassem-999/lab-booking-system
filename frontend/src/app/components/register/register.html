@@ -1,0 +1,35 @@
+<div style="max-width: 400px; margin: 50px auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-family: sans-serif;">
+  <h2 style="text-align: center; margin-bottom: 20px;">Inscription</h2>
+
+  <div *ngIf="errorMessage" style="color: red; margin-bottom: 15px; text-align: center;">
+    {{ errorMessage }}
+  </div>
+
+  <form (ngSubmit)="onRegister()">
+    <div style="margin-bottom: 15px;">
+      <label style="display: block; font-weight: bold; margin-bottom: 5px;">Nom :</label>
+      <input type="text" [(ngModel)]="name" name="name" placeholder="Entrez votre nom" required
+             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <label style="display: block; font-weight: bold; margin-bottom: 5px;">Email :</label>
+      <input type="email" [(ngModel)]="email" name="email" placeholder="Entrez votre email" required
+             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; font-weight: bold; margin-bottom: 5px;">Mot de passe :</label>
+      <input type="password" [(ngModel)]="password" name="password" placeholder="Entrez votre mot de passe" required
+             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+    </div>
+
+    <button type="submit" style="width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">
+      S'inscrire
+    </button>
+  </form>
+
+  <p style="text-align: center; margin-top: 15px; font-size: 14px;">
+    Déjà un compte ? <a routerLink="/login" style="color: #007bff; text-decoration: none;">Se connecter</a>
+  </p>
+</div>
