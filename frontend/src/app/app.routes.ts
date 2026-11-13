@@ -1,8 +1,11 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login';
+import { DashboardComponent } from './components/dashboard/dashboard';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
-  // Hne nzidou el Dashboard w el LabList ba3d ما نصنعوهم
+  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: '**', redirectTo: 'login' }
 ];

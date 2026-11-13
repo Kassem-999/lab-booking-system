@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,18 +16,24 @@ export class LoginComponent {
     email: '',
     password: ''
   };
-  errorMessage: string = '';
+  errorMessage = '';
+  isLoading = false;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   onLogin(): void {
+    if (this.isLoading) return;
+    this.errorMessage = '';
+    this.isLoading = true;
     this.authService.login(this.credentials).subscribe({
-      next: (res: any) => {
-        this.authService.saveToken(res.token);
+      next: () => {
+        this.isLoading = false;
         this.router.navigate(['/dashboard']);
       },
       error: (err: any) => {
         this.errorMessage = err.error?.message || 'خطأ في عملية الدخول';
+        this.isLoading = false;
       }
     });
   }

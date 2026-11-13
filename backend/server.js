@@ -10,6 +10,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 app.get('/', (req, res) => {
   res.send('API is running...');
@@ -26,7 +27,7 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/labs', require('./routes/labRoutes'));
 app.use('/api/bookings', require('./routes/bookingRoutes'));
-const cors = require('cors');
-
-// قبول الطلبات من الأنجولار
-app.use(cors());
+app.use('/api/equipment', require('./routes/equipmentRoutes'));
+app.use('/api/reservations', require('./routes/reservationRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));

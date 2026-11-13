@@ -1,49 +1,87 @@
 .login-container {
-  max-width: 400px;
-  margin: 80px auto;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  background-color: #ffffff;
-  font-family: Arial, sans-serif;
+  width: min(420px, calc(100% - 40px));
+  margin: 10vh auto;
+  padding: 38px;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px #173a3d12;
+  background: #fff;
 }
 
 .login-container h2 {
-  text-align: center;
-  margin-bottom: 25px;
-  color: #333;
+  margin: 8px 0;
+  color: #14242a;
+  font-size: 2rem;
+}
+
+.subtitle {
+  color: #70858a;
+  margin-bottom: 30px;
+}
+
+.eyebrow {
+  font-size: .7rem;
+  letter-spacing: .14em;
+  color: #16807b;
+  font-weight: 800;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 8px;
   font-weight: bold;
-  color: #555;
+  color: #52666b;
 }
 
 .form-group input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 12px;
+  border: 1px solid #d5e0e2;
+  border-radius: 8px;
   box-sizing: border-box;
 }
 
 button {
   width: 100%;
   padding: 12px;
-  background-color: #007bff;
+  background-color: #137a76;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 16px;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #0e625f;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border: 2px solid #ffffff70;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: -2px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  color: #a52c2c;
+  background: #fde6e6;
 }

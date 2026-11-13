@@ -1,0 +1,111 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">L</div>
+      <div><strong>LabSync</strong><small>Lab Booking System</small></div>
+    </div>
+
+    <nav class="navigation" aria-label="Main navigation">
+      <button class="nav-item active" (click)="setTab('labs')"><span class="nav-icon">⌂</span>Dashboard</button>
+      <button class="nav-item" [class.active]="activeTab === 'equipment'" (click)="setTab('equipment')"><span class="nav-icon">▦</span>Labs &amp; Equipment</button>
+      <button class="nav-item" [class.active]="activeTab === 'reservations'" (click)="setTab('reservations')"><span class="nav-icon">▤</span>Reservations</button>
+      <button *ngIf="isAdmin" class="nav-item" [class.active]="activeTab === 'users'" (click)="setTab('users')"><span class="nav-icon">♙</span>Users &amp; Roles</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="profile-mini">
+        <div class="avatar">{{ user?.name?.charAt(0) | uppercase }}</div>
+        <div><strong>{{ user?.name }}</strong><small>{{ user?.email }}</small></div>
+      </div>
+      <button class="logout-button" (click)="logout()">↪ <span>Log out</span></button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="page-header">
+      <div>
+        <div class="breadcrumb">Home <span>/</span> Dashboard <span>/</span> {{ activeTab | titlecase }}</div>
+        <h1>Lab Management &amp; Reservations</h1>
+        <p>Manage your laboratory resources and keep every booking on track.</p>
+      </div>
+      <span class="role-badge">{{ user?.role | uppercase }}</span>
+    </header>
+
+    <div *ngIf="message" class="notice success">{{ message }}</div>
+    <div *ngIf="error" class="notice error">{{ error }}</div>
+
+    <div class="tabs">
+      <button [class.selected]="activeTab === 'labs' || activeTab === 'equipment'" (click)="setTab('labs')">All Labs</button>
+      <button [class.selected]="activeTab === 'reservations'" (click)="setTab('reservations')">My Reservations</button>
+      <button *ngIf="isManager" [class.selected]="activeTab === 'approvals'" (click)="setTab('approvals')">Pending Approvals <span class="tab-count">{{ pendingReservations.length }}</span></button>
+      <button *ngIf="isAdmin" [class.selected]="activeTab === 'users'" (click)="setTab('users')">Manage Users</button>
+    </div>
+
+    <section class="summary-grid">
+      <div class="summary-card"><span class="summary-icon blue">▦</span><div><small>Total equipment</small><strong>{{ isAdmin ? metrics.equipment : totalItems }}</strong><span class="trend">Live catalog</span></div></div>
+      <div class="summary-card"><span class="summary-icon green">✓</span><div><small>Active bookings</small><strong>{{ isAdmin ? metrics.activeBookings : reservations.length }}</strong><span class="trend">Across your account</span></div></div>
+      <div class="summary-card"><span class="summary-icon amber">◷</span><div><small>Pending approvals</small><strong>{{ isAdmin ? metrics.pendingApprovals : pendingReservations.length }}</strong><span class="trend">Needs attention</span></div></div>
+      <div *ngIf="isAdmin" class="summary-card"><span class="summary-icon violet">♙</span><div><small>Registered users</small><strong>{{ metrics.users }}</strong><span class="trend">All roles</span></div></div>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="loadEquipment()" placeholder="Search labs or bookings..." /></div>
+        <select [(ngModel)]="availability" (ngModelChange)="loadEquipment()"><option value="">All statuses</option><option value="available">Available</option><option value="unavailable">Unavailable</option><option value="maintenance">Maintenance</option></select>
+        <select [(ngModel)]="sort" (ngModelChange)="loadEquipment()"><option value="newest">Sort by newest</option><option value="alphabetical">Alphabetical</option><option value="availability">Availability</option></select>
+        <button class="primary-button" (click)="equipment.length ? openBooking(equipment[0]) : null">{{ isManager ? '+ Add New Lab' : '+ New Reservation' }}</button>
+      </div>
+
+      <div *ngIf="activeTab === 'labs' || activeTab === 'equipment'">
+        <div class="table-heading"><div><h2>Labs &amp; equipment</h2><p>Browse available resources and request access.</p></div><select [(ngModel)]="category" (ngModelChange)="loadEquipment()"><option value="">All categories</option><option value="camera">Cameras</option><option value="3d-printer">3D printers</option><option value="lab-kit">Lab kits</option></select></div>
+        <div *ngIf="loading" class="empty-state">Loading catalog...</div>
+        <div *ngIf="!loading && !equipment.length" class="empty-state">No equipment matches your filters.</div>
+        <div class="data-table" *ngIf="!loading && equipment.length">
+          <div class="table-row table-header"><span>Equipment</span><span>Category</span><span>Condition</span><span>Status</span><span>Action</span></div>
+          <div class="table-row" *ngFor="let item of equipment">
+            <span class="equipment-cell"><span class="equipment-avatar">{{ item.name.charAt(0) | uppercase }}</span><span><strong>{{ item.name }}</strong><small>{{ item.description || 'University lab resource' }}</small></span></span>
+            <span>{{ item.category | titlecase }}</span><span>{{ item.condition | titlecase }}</span>
+            <span><span class="status-pill" [class]="item.availability">{{ item.availability }}</span></span>
+            <span><button class="row-action" [disabled]="item.availability !== 'available'" (click)="openBooking(item)">{{ item.availability === 'available' ? 'Reserve' : 'Unavailable' }}</button></span>
+          </div>
+        </div>
+        <footer class="pagination"><span>Showing {{ totalItems ? 1 : 0 }}-{{ equipment.length }} of {{ totalItems }} items</span><div><button (click)="setPage(page - 1)" [disabled]="page === 1">Previous</button><button class="page-number">{{ page }}</button><button (click)="setPage(page + 1)" [disabled]="page === pageCount">Next</button></div></footer>
+      </div>
+
+      <div *ngIf="activeTab === 'reservations' || activeTab === 'approvals'">
+        <div class="table-heading"><div><h2>{{ activeTab === 'approvals' ? 'Pending approvals' : 'My reservations' }}</h2><p>{{ activeTab === 'approvals' ? 'Review and action incoming booking requests.' : 'Track the status of your equipment bookings.' }}</p></div></div>
+        <div class="data-table" *ngIf="reservations.length; else noReservations">
+          <div class="table-row table-header"><span>Equipment</span><span>Dates</span><span>Requester</span><span>Status</span><span>Actions</span></div>
+          <div class="table-row" *ngFor="let item of reservations">
+            <span class="equipment-cell"><span class="equipment-avatar">{{ item.equipment?.name?.charAt(0) | uppercase }}</span><strong>{{ item.equipment?.name }}</strong></span>
+            <span>{{ item.startDate | date:'mediumDate' }} — {{ item.endDate | date:'mediumDate' }}</span><span>{{ item.user?.name || 'You' }}</span><span class="status-pill" [class]="item.status">{{ item.status }}</span>
+            <span class="actions"><button *ngIf="isManager && item.status === 'pending'" class="approve" (click)="updateStatus(item, 'approved')">Approve</button><button *ngIf="isManager && item.status === 'pending'" class="reject" (click)="updateStatus(item, 'rejected')">Reject</button><button *ngIf="isManager && item.status === 'approved'" class="approve" (click)="updateStatus(item, 'returned')">Return</button></span>
+          </div>
+        </div>
+        <ng-template #noReservations><div class="empty-state">No reservations found.</div></ng-template>
+      </div>
+
+      <div *ngIf="activeTab === 'users' && isAdmin">
+        <div class="table-heading"><div><h2>Users &amp; roles</h2><p>Review the people who can access LabSync.</p></div></div>
+        <div class="data-table" *ngIf="users.length; else noUsers">
+          <div class="table-row user-row table-header"><span>User</span><span>Email</span><span>Role</span><span></span><span></span></div>
+          <div class="table-row user-row" *ngFor="let account of users">
+            <span class="equipment-cell"><span class="equipment-avatar">{{ account.name.charAt(0) | uppercase }}</span><strong>{{ account.name }}</strong></span>
+            <span>{{ account.email }}</span><span class="status-pill" [class]="account.role">{{ account.role }}</span><span></span><span></span>
+          </div>
+        </div>
+        <ng-template #noUsers><div class="empty-state">No users found.</div></ng-template>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" *ngIf="selected">
+  <form class="modal" (ngSubmit)="submitBooking()">
+    <div class="modal-heading"><div><span class="overline">NEW RESERVATION</span><h2>{{ selected?.name }}</h2></div><button type="button" class="close-button" (click)="selected = null">×</button></div>
+    <label>Start date<input type="date" name="startDate" [(ngModel)]="booking.startDate" required /></label>
+    <label>End date<input type="date" name="endDate" [(ngModel)]="booking.endDate" required /></label>
+    <label>Notes<textarea name="notes" [(ngModel)]="booking.notes" placeholder="Add context for the lab team"></textarea></label>
+    <div class="modal-actions"><button type="button" class="secondary-button" (click)="selected = null">Cancel</button><button class="primary-button" type="submit">Submit request</button></div>
+  </form>
+</div>

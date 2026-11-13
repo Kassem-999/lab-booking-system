@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../models/user');
 
 // 1. Middleware للتحقق من صحة الـ Token
 const protect = async (req, res, next) => {

@@ -6,10 +6,11 @@ const jwt = require('jsonwebtoken');
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Check if user exists
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: normalizedEmail });
     if (user) {
       return res.status(400).json({ message: 'Cet utilisateur existe déjà' });
     }
@@ -21,9 +22,9 @@ exports.register = async (req, res) => {
     // Create user
     user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
-      role,
+      role: 'student',
     });
 
     // Generate JWT
@@ -48,6 +49,10 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.getProfile = async (req, res) => {
+  res.status(200).json({ success: true, user: req.user });
+};
+
 // @desc    Login user
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
@@ -55,7 +60,7 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     // Check for user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email || '').trim().toLowerCase() });
     if (!user) {
       return res.status(400).json({ message: 'Identifiants invalides' });
     }

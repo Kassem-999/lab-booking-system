@@ -1,0 +1,121 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService, User } from '../../services/auth';
+import { Equipment, EquipmentService } from '../../services/equipment';
+import { Reservation, ReservationService } from '../../services/reservation';
+import { UsersService } from '../../services/users';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './dashboard.html',
+  styleUrl: './dashboard.css'
+})
+export class DashboardComponent implements OnInit {
+  user: User | null = null;
+  equipment: Equipment[] = [];
+  reservations: Reservation[] = [];
+  users: User[] = [];
+  metrics = { equipment: 0, activeBookings: 0, pendingApprovals: 0, users: 0 };
+  activeTab = 'labs';
+  page = 1;
+  pageCount = 1;
+  totalItems = 0;
+  search = '';
+  category = '';
+  availability = '';
+  sort = 'newest';
+  selected: Equipment | null = null;
+  booking = { startDate: '', endDate: '', notes: '' };
+  loading = false;
+  message = '';
+  error = '';
+
+  private auth = inject(AuthService);
+  private equipmentService = inject(EquipmentService);
+  private reservationService = inject(ReservationService);
+  private router = inject(Router);
+  private usersService = inject(UsersService);
+
+  ngOnInit(): void {
+    this.user = this.auth.getUser();
+    this.loadEquipment();
+    this.loadReservations();
+    if (this.isAdmin) {
+      fetch('http://localhost:5000/api/dashboard/metrics', {
+        headers: { Authorization: `Bearer ${this.auth.getToken()}` }
+      }).then((response) => response.json()).then((response) => this.metrics = response.data).catch(() => undefined);
+    }
+  }
+
+  get isManager(): boolean { return this.user?.role === 'staff' || this.user?.role === 'admin'; }
+  get isAdmin(): boolean { return this.user?.role === 'admin'; }
+  get pendingReservations(): Reservation[] { return this.reservations.filter((item) => item.status === 'pending'); }
+
+  loadEquipment(): void {
+    this.loading = true;
+    this.equipmentService.list({ search: this.search, category: this.category, availability: this.availability, sort: this.sort }).subscribe({
+      next: (response) => {
+        this.equipment = response.data;
+        this.pageCount = response.pagination.pages;
+        this.totalItems = response.pagination.total;
+        this.loading = false;
+      },
+      error: (error) => { this.error = error.error?.message || 'Unable to load equipment'; this.loading = false; }
+    });
+  }
+
+  loadReservations(): void {
+    this.reservationService.list().subscribe({
+      next: (response) => this.reservations = response.data,
+      error: () => this.error = 'Unable to load reservations'
+    });
+  }
+
+  openBooking(item: Equipment): void {
+    this.selected = item;
+    this.booking = { startDate: '', endDate: '', notes: '' };
+    this.message = '';
+    this.error = '';
+  }
+
+  submitBooking(): void {
+    if (!this.selected) return;
+    this.error = '';
+    this.reservationService.create({ equipment: this.selected._id, ...this.booking }).subscribe({
+      next: () => { this.message = 'Reservation submitted for approval.'; this.selected = null; this.loadReservations(); },
+      error: (error) => this.error = error.error?.message || 'Unable to create reservation'
+    });
+  }
+
+  updateStatus(item: Reservation, status: Reservation['status']): void {
+    this.reservationService.updateStatus(item._id, status).subscribe({
+      next: () => { this.message = `Reservation ${status}.`; this.loadReservations(); },
+      error: (error) => this.error = error.error?.message || 'Unable to update reservation'
+    });
+  }
+
+  logout(): void { this.auth.logout(); this.router.navigate(['/login']); }
+
+  setTab(tab: string): void {
+    this.activeTab = tab;
+    if (tab === 'reservations' || tab === 'approvals') this.loadReservations();
+    if (tab === 'users' && this.isAdmin) this.loadUsers();
+  }
+
+  setPage(page: number): void {
+    if (page < 1 || page > this.pageCount || page === this.page) return;
+    this.page = page;
+    this.loadEquipment();
+  }
+
+  loadUsers(): void {
+    this.usersService.list().subscribe({
+      next: (response) => this.users = response.data,
+      error: (error) => this.error = error.error?.message || 'Unable to load users'
+    });
+  }
+}
