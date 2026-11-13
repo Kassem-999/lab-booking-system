@@ -6,14 +6,12 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.post('/register', register);
 router.post('/login', login);
 
-// روت محمية تتطلب Token صحيح
 router.get('/me', protect, getProfile);
 
-// روت خاصة بالـ admin فقط
 router.get('/admin-only', protect, authorize('admin'), (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'مرحباً بك في لوحة تحكم الإدارة!'
+    message: 'Welcome to the admin dashboard'
   });
 });
 

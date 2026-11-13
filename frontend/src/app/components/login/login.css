@@ -85,3 +85,15 @@ button:disabled {
   color: #a52c2c;
   background: #fde6e6;
 }
+
+.register-link {
+  margin-top: 20px;
+  text-align: center;
+  color: #70858a;
+  font-size: .8rem;
+}
+
+.register-link a {
+  color: #137a76;
+  font-weight: 700;
+}

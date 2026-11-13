@@ -1,13 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
@@ -32,7 +32,7 @@ export class LoginComponent {
         this.router.navigate(['/dashboard']);
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'خطأ في عملية الدخول';
+        this.errorMessage = err.error?.message || 'Unable to sign in';
         this.isLoading = false;
       }
     });

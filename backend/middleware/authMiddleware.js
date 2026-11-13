@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 
-// 1. Middleware للتحقق من صحة الـ Token
 const protect = async (req, res, next) => {
   let token;
 
@@ -19,26 +18,25 @@ const protect = async (req, res, next) => {
       req.user = rows[0] ? { ...rows[0], _id: rows[0].id } : null;
 
       if (!req.user) {
-        return res.status(401).json({ message: 'المستعمل غير موجود' });
+        return res.status(401).json({ message: 'User not found' });
       }
 
-      next(); // عدّي للعملية اللي بعدها
+      next();
     } catch (error) {
-      return res.status(401).json({ message: 'الـ Token غير صالح أو انتهت صلاحيته' });
+      return res.status(401).json({ message: 'Invalid or expired token' });
     }
   }
 
   if (!token) {
-    return res.status(401).json({ message: 'غير مسموح بالدخول، لا يوجد Token' });
+    return res.status(401).json({ message: 'Authentication token is required' });
   }
 };
 
-// 2. Middleware للتحقق من الأدوار (Roles) كيما student أو admin
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
-        message: `دور '${req.user.role}' لا يملك الصلاحية للوصول إلى هذه الصفحة`
+        message: `Role '${req.user.role}' is not authorized for this resource`
       });
     }
     next();
