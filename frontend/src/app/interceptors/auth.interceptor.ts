@@ -1,8 +1,21 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const token = inject(AuthService).getToken();
-  return next(token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req);
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  const request = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+  return next(request).pipe(
+    catchError((error) => {
+      if (error.status === 401) {
+        auth.logout();
+        void router.navigate(['/login']);
+      }
+      return throwError(() => error);
+    })
+  );
 };

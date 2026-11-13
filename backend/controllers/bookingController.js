@@ -1,88 +1,43 @@
-const Booking = require('../models/Booking');
-const Lab = require('../models/Lab');
+const { pool } = require('../config/db');
 
-// @desc    Créer une nouvelle réservation
-// @route   POST /api/bookings
-// @access  Private
-const createBooking = async (req, res) => {
+exports.createBooking = async (req, res) => {
   try {
     const { labId, date, startTime, endTime, reason } = req.body;
-
-    const lab = await Lab.findById(labId);
-    if (!lab) {
-      return res.status(404).json({ message: 'Lab non trouvé' });
-    }
-
-    const existingBooking = await Booking.findOne({
-      lab: labId,
-      date: new Date(date),
-      startTime,
-      status: { $ne: 'rejected' }
-    });
-
-    if (existingBooking) {
-      return res.status(400).json({ message: 'Lab déjà réservé pour ce créneau' });
-    }
-
-    const booking = await Booking.create({
-      lab: labId,
-      user: req.user._id,
-      date,
-      startTime,
-      endTime,
-      reason
-    });
-
-    res.status(201).json({ success: true, data: booking });
+    const [labs] = await pool.query('SELECT id FROM labs WHERE id = ?', [labId]);
+    if (!labs.length) return res.status(404).json({ message: 'Lab not found' });
+    const [conflicts] = await pool.query(
+      `SELECT id FROM bookings WHERE lab_id = ? AND date = ? AND status IN ('pending', 'approved')
+       AND start_time < ? AND end_time > ? LIMIT 1`,
+      [labId, date, endTime, startTime]
+    );
+    if (conflicts.length) return res.status(409).json({ message: 'Lab already reserved for this time slot' });
+    const [result] = await pool.query(
+      'INSERT INTO bookings (lab_id, user_id, date, start_time, end_time, reason) VALUES (?, ?, ?, ?, ?, ?)',
+      [labId, req.user.id, date, startTime, endTime, reason || '']
+    );
+    const [rows] = await pool.query('SELECT * FROM bookings WHERE id = ?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0] });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// @desc    Obtenir toutes les réservations
-// @route   GET /api/bookings
-// @access  Private
-const getBookings = async (req, res) => {
-  try {
-    let query;
-
-    if (req.user.role === 'admin') {
-      query = Booking.find().populate('lab', 'name capacity').populate('user', 'name email role');
-    } else {
-      query = Booking.find({ user: req.user._id }).populate('lab', 'name capacity');
-    }
-
-    const bookings = await query;
-    res.status(200).json({ success: true, count: bookings.length, data: bookings });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+exports.getBookings = async (req, res) => {
+  const isManager = ['staff', 'admin'].includes(req.user.role);
+  const [rows] = await pool.query(
+    `SELECT b.*, l.name AS lab_name, l.capacity, u.name AS user_name, u.email AS user_email, u.role AS user_role
+     FROM bookings b JOIN labs l ON l.id = b.lab_id JOIN users u ON u.id = b.user_id
+     ${isManager ? '' : 'WHERE b.user_id = ?'} ORDER BY b.date DESC, b.start_time DESC`,
+    isManager ? [] : [req.user.id]
+  );
+  res.json({ success: true, count: rows.length, data: rows });
 };
 
-// @desc    Changer le statut d'une réservation (Admin)
-// @route   PUT /api/bookings/:id/status
-// @access  Private (Admin)
-const updateBookingStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ message: 'Statut invalide' });
-    }
-
-    const booking = await Booking.findById(req.params.id);
-
-    if (!booking) {
-      return res.status(404).json({ message: 'Réservation non trouvée' });
-    }
-
-    booking.status = status;
-    await booking.save();
-
-    res.status(200).json({ success: true, data: booking });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+exports.updateBookingStatus = async (req, res) => {
+  const { status } = req.body;
+  if (!['approved', 'rejected', 'returned'].includes(status)) return res.status(400).json({ message: 'Invalid status' });
+  const [result] = await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [status, req.params.id]);
+  if (!result.affectedRows) return res.status(404).json({ message: 'Booking not found' });
+  const [rows] = await pool.query('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  res.json({ success: true, data: rows[0] });
 };
-
-module.exports = { createBooking, getBookings, updateBookingStatus };

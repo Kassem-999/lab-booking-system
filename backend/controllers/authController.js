@@ -1,6 +1,13 @@
-const User = require('../models/user');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { pool } = require('../config/db');
+
+const publicUser = (user) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role
+});
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -10,8 +17,8 @@ exports.register = async (req, res) => {
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Check if user exists
-    let user = await User.findOne({ email: normalizedEmail });
-    if (user) {
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [normalizedEmail]);
+    if (existing.length) {
       return res.status(400).json({ message: 'Cet utilisateur existe déjà' });
     }
 
@@ -20,16 +27,15 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    user = await User.create({
-      name,
-      email: normalizedEmail,
-      password: hashedPassword,
-      role: 'student',
-    });
+    const [result] = await pool.query(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+      [name, normalizedEmail, hashedPassword, 'student']
+    );
+    const user = { id: result.insertId, name, email: normalizedEmail, role: 'student' };
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -38,10 +44,7 @@ exports.register = async (req, res) => {
       success: true,
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        ...publicUser(user),
       },
     });
   } catch (error) {
@@ -60,7 +63,12 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     // Check for user
-    const user = await User.findOne({ email: String(email || '').trim().toLowerCase() });
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const [rows] = await pool.query(
+      'SELECT id, name, email, password, role FROM users WHERE email = ? LIMIT 1',
+      [normalizedEmail]
+    );
+    const user = rows[0];
     if (!user) {
       return res.status(400).json({ message: 'Identifiants invalides' });
     }
@@ -73,7 +81,7 @@ exports.login = async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -82,10 +90,7 @@ exports.login = async (req, res) => {
       success: true,
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        ...publicUser(user),
       },
     });
   } catch (error) {

@@ -6,7 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'student' | 'staff' | 'admin';
+  role: 'admin' | 'staff' | 'student' | 'user';
 }
 
 @Injectable({
