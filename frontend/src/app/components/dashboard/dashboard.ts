@@ -29,8 +29,9 @@ export class DashboardComponent implements OnInit {
   availability = '';
   sort = 'newest';
   selected: Equipment | null = null;
-  modalMode: 'booking' | 'user' | 'equipment' = 'booking';
+  modalMode: 'booking' | 'user' | 'editUser' | 'equipment' = 'booking';
   newUser = { name: '', email: '', password: '', role: 'staff' as User['role'] };
+  editingUser: User | null = null;
   newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
   calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   booking = { startDate: '', endDate: '', notes: '' };
@@ -104,6 +105,13 @@ export class DashboardComponent implements OnInit {
     this.error = '';
   }
 
+  openEditUser(account: User): void {
+    this.modalMode = 'editUser';
+    this.editingUser = account;
+    this.newUser = { name: account.name, email: account.email, password: '', role: account.role };
+    this.error = '';
+  }
+
   openEquipmentModal(): void {
     this.modalMode = 'equipment';
     this.newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
@@ -114,6 +122,28 @@ export class DashboardComponent implements OnInit {
     this.usersService.create(this.newUser).subscribe({
       next: () => { this.selected = null; this.modalMode = 'booking'; this.message = 'Staff account created successfully.'; this.loadUsers(); },
       error: (error) => this.error = error.error?.message || 'Unable to create account'
+    });
+  }
+
+  submitEditUser(): void {
+    if (!this.editingUser) return;
+    this.usersService.update(String(this.editingUser.id), {
+      name: this.newUser.name,
+      email: this.newUser.email,
+      role: this.newUser.role
+    }).subscribe({
+      next: (response) => {
+        const updated = response.data;
+        this.users = this.users.map((account) => String(account.id) === String(updated.id) ? updated : account);
+        if (this.user && String(this.user.id) === String(updated.id)) {
+          this.auth.saveSession({ token: this.auth.getToken() || '', user: updated });
+          this.user = updated;
+        }
+        this.editingUser = null;
+        this.modalMode = 'booking';
+        this.message = 'User updated successfully.';
+      },
+      error: (error) => this.error = error.error?.message || 'Unable to update user'
     });
   }
 

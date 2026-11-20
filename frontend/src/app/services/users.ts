@@ -12,4 +12,7 @@ export class UsersService {
   create(data: { name: string; email: string; password: string; role: User['role'] }): Observable<{ data: User }> {
     return this.http.post<{ data: User }>('http://localhost:5000/api/users', data);
   }
+  update(id: string, data: { name: string; email: string; role: User['role'] }): Observable<{ data: User }> {
+    return this.http.put<{ data: User }>(`http://localhost:5000/api/users/${id}`, data);
+  }
 }
