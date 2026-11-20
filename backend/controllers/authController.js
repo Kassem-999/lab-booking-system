@@ -15,11 +15,19 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedName = String(name || '').trim();
+
+    if (!normalizedName || !normalizedEmail || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'Password must contain at least 6 characters' });
+    }
 
     // Check if user exists
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [normalizedEmail]);
     if (existing.length) {
-      return res.status(400).json({ message: 'Cet utilisateur existe déjà' });
+      return res.status(409).json({ message: 'Email already exists' });
     }
 
     // Hash password
@@ -29,9 +37,9 @@ exports.register = async (req, res) => {
     // Create user
     const [result] = await pool.query(
       'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, normalizedEmail, hashedPassword, 'student']
+      [normalizedName, normalizedEmail, hashedPassword, 'student']
     );
-    const user = { id: result.insertId, name, email: normalizedEmail, role: 'student' };
+    const user = { id: result.insertId, name: normalizedName, email: normalizedEmail, role: 'student' };
 
     // Generate JWT
     const token = jwt.sign(
@@ -61,22 +69,26 @@ exports.getProfile = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     // Check for user
-    const normalizedEmail = String(email || '').trim().toLowerCase();
     const [rows] = await pool.query(
       'SELECT id, name, email, password, role FROM users WHERE email = ? LIMIT 1',
       [normalizedEmail]
     );
     const user = rows[0];
     if (!user) {
-      return res.status(400).json({ message: 'Identifiants invalides' });
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Identifiants invalides' });
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // Generate JWT

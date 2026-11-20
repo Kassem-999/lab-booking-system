@@ -27,15 +27,36 @@ exports.getUsers = async (_req, res) => {
 };
 
 exports.updateUser = async (req, res) => {
-  const { name, email, role } = req.body;
-  if (!validRoles.includes(role)) return res.status(400).json({ message: 'Invalid role' });
-  const [result] = await pool.query(
-    'UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?',
-    [name, email.trim().toLowerCase(), role, req.params.id]
-  );
-  if (!result.affectedRows) return res.status(404).json({ message: 'User not found' });
-  const [rows] = await pool.query('SELECT id, name, email, role FROM users WHERE id = ?', [req.params.id]);
-  res.json({ success: true, data: publicUser(rows[0]) });
+  try {
+    const name = String(req.body.name || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const role = req.body.role;
+
+    if (!name || !email || !validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Name, email, and a valid role are required' });
+    }
+
+    const [existing] = await pool.query(
+      'SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1',
+      [email, req.params.id]
+    );
+    if (existing.length) {
+      return res.status(409).json({ message: 'Email already exists' });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?',
+      [name, email, role, req.params.id]
+    );
+    if (!result.affectedRows) return res.status(404).json({ message: 'User not found' });
+
+    const [rows] = await pool.query('SELECT id, name, email, role FROM users WHERE id = ?', [req.params.id]);
+    res.json({ success: true, data: publicUser(rows[0]) });
+  } catch (error) {
+    res.status(error.code === 'ER_DUP_ENTRY' ? 409 : 500).json({
+      message: error.code === 'ER_DUP_ENTRY' ? 'Email already exists' : error.message
+    });
+  }
 };
 
 exports.deleteUser = async (req, res) => {
