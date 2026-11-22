@@ -1,9 +1,7 @@
 <div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed">
   <aside class="sidebar">
-    <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-      {{ sidebarCollapsed ? '»' : '«' }}
-    </button>
     <div class="brand">
+      <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">☰</button>
       <div class="brand-mark">L</div>
       <div><strong>LabSync</strong><small>Lab Booking System</small></div>
     </div>

@@ -57,6 +57,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.user = this.auth.getUser();
+    this.sidebarCollapsed = typeof localStorage !== 'undefined' && localStorage.getItem('sidebarCollapsed') === 'true';
     this.loadEquipment();
     this.loadLabs();
     this.loadReservations();
@@ -190,6 +191,9 @@ export class DashboardComponent implements OnInit {
 
   toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', String(this.sidebarCollapsed));
+    }
   }
 
   submitUser(): void {
