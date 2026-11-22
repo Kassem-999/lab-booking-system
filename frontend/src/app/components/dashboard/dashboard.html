@@ -6,7 +6,7 @@
     </div>
 
     <nav class="navigation" aria-label="Main navigation">
-      <button class="nav-item active" (click)="setTab('labs')"><span class="nav-icon">⌂</span>Dashboard</button>
+      <button class="nav-item" [class.active]="activeTab === 'labs'" (click)="setTab('labs')"><span class="nav-icon">⌂</span>Dashboard</button>
       <button class="nav-item" [class.active]="activeTab === 'equipment'" (click)="setTab('equipment')"><span class="nav-icon">▦</span>Labs &amp; Equipment</button>
       <button class="nav-item" [class.active]="activeTab === 'reservations'" (click)="setTab('reservations')"><span class="nav-icon">▤</span>Reservations</button>
       <button class="nav-item" [class.active]="activeTab === 'calendar'" (click)="setTab('calendar')"><span class="nav-icon">□</span>Availability calendar</button>
