@@ -31,12 +31,13 @@ export class DashboardComponent implements OnInit {
   availability = '';
   sort = 'newest';
   selected: Equipment | null = null;
-  modalMode: 'booking' | 'user' | 'editUser' | 'equipment' | 'lab' = 'booking';
+  modalMode: 'booking' | 'user' | 'editUser' | 'equipment' | 'lab' | 'editLab' = 'booking';
   newUser = { name: '', email: '', password: '', role: 'staff' as User['role'] };
   editingUser: User | null = null;
   newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
   newLab = { name: '', capacity: 1, equipment: '', description: '', status: 'available' as 'available' | 'maintenance' };
   newLabPhoto: File | null = null;
+  editingLab: Lab | null = null;
   calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   booking = { startDate: '', endDate: '', notes: '' };
   loading = false;
@@ -125,8 +126,23 @@ export class DashboardComponent implements OnInit {
   }
 
   openLabModal(): void {
+    this.editingLab = null;
     this.modalMode = 'lab';
     this.newLab = { name: '', capacity: 1, equipment: '', description: '', status: 'available' };
+    this.newLabPhoto = null;
+    this.error = '';
+  }
+
+  openEditLab(lab: Lab): void {
+    this.editingLab = lab;
+    this.modalMode = 'editLab';
+    this.newLab = {
+      name: lab.name,
+      capacity: lab.capacity,
+      equipment: lab.equipment.join(', '),
+      description: lab.description,
+      status: lab.isAvailable ? 'available' : 'maintenance'
+    };
     this.newLabPhoto = null;
     this.error = '';
   }
@@ -137,11 +153,16 @@ export class DashboardComponent implements OnInit {
   }
 
   submitLab(): void {
-    this.labService.create({ ...this.newLab, photo: this.newLabPhoto }).subscribe({
+    const isUpdate = !!this.editingLab;
+    const action = isUpdate
+      ? this.labService.update(this.editingLab!._id, { ...this.newLab, photo: this.newLabPhoto })
+      : this.labService.create({ ...this.newLab, photo: this.newLabPhoto });
+    action.subscribe({
       next: () => {
         this.modalMode = 'booking';
+        this.editingLab = null;
         this.newLabPhoto = null;
-        this.message = 'Lab added successfully.';
+        this.message = isUpdate ? 'Lab updated successfully.' : 'Lab added successfully.';
         this.loadLabs();
       },
       error: (error) => this.error = error.error?.message || 'Unable to add lab'

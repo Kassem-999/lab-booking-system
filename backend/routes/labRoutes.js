@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getLabs, createLab } = require('../controllers/labController');
+const { getLabs, createLab, updateLab, deleteLab } = require('../controllers/labController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -19,6 +19,11 @@ const upload = multer({
 router
   .route('/')
   .get(protect, getLabs)
-  .post(protect, authorize('admin'), upload.single('photo'), createLab);
+  .post(protect, authorize('admin'), upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'image', maxCount: 1 }]), createLab);
+
+router
+  .route('/:id')
+  .put(protect, authorize('admin'), upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'image', maxCount: 1 }]), updateLab)
+  .delete(protect, authorize('admin'), deleteLab);
 
 module.exports = router;

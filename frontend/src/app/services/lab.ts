@@ -38,4 +38,22 @@ export class LabService {
     if (data.photo) form.set('photo', data.photo);
     return this.http.post<{ data: Lab }>(this.apiUrl, form);
   }
+
+  update(id: string, data: {
+    name: string;
+    capacity: number;
+    equipment: string;
+    description: string;
+    status: 'available' | 'maintenance';
+    photo?: File | null;
+  }): Observable<{ data: Lab }> {
+    const form = new FormData();
+    form.set('name', data.name);
+    form.set('capacity', String(data.capacity));
+    form.set('equipment', data.equipment);
+    form.set('description', data.description);
+    form.set('status', data.status);
+    if (data.photo) form.set('photo', data.photo);
+    return this.http.put<{ data: Lab }>(`${this.apiUrl}/${id}`, form);
+  }
 }
