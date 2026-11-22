@@ -21,10 +21,20 @@ const connectDB = async () => {
         name VARCHAR(120) NOT NULL,
         email VARCHAR(190) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        role VARCHAR(20) NOT NULL DEFAULT 'student',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
+    `);
+    await connection.query(`
+      ALTER TABLE users
+      MODIFY role VARCHAR(20) NOT NULL DEFAULT 'student'
+    `);
+    await connection.query(`
+      UPDATE users
+      SET role = 'student'
+      WHERE LOWER(TRIM(role)) IN ('', 'user')
+         OR LOWER(TRIM(role)) NOT IN ('admin', 'staff', 'student')
     `);
     await connection.query(`
       CREATE TABLE IF NOT EXISTS labs (
@@ -32,10 +42,20 @@ const connectDB = async () => {
         name VARCHAR(150) NOT NULL UNIQUE,
         capacity INT NOT NULL DEFAULT 1,
         equipment TEXT,
+        description TEXT,
         is_available TINYINT(1) NOT NULL DEFAULT 1,
+        image_url VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    const [labColumns] = await connection.query(
+      'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
+      [process.env.MYSQL_DATABASE || 'lab_booking_db', 'labs']
+    );
+    const labColumnNames = new Set(labColumns.map((column) => column.COLUMN_NAME));
+    if (!labColumnNames.has('description')) await connection.query('ALTER TABLE labs ADD COLUMN description TEXT');
+    if (!labColumnNames.has('is_available')) await connection.query('ALTER TABLE labs ADD COLUMN is_available TINYINT(1) NOT NULL DEFAULT 1');
+    if (!labColumnNames.has('image_url')) await connection.query('ALTER TABLE labs ADD COLUMN image_url VARCHAR(255)');
     await connection.query(`
       CREATE TABLE IF NOT EXISTS equipment (
         id INT AUTO_INCREMENT PRIMARY KEY,

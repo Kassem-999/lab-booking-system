@@ -6,6 +6,7 @@ import { AuthService, User } from '../../services/auth';
 import { Equipment, EquipmentService } from '../../services/equipment';
 import { Reservation, ReservationService } from '../../services/reservation';
 import { UsersService } from '../../services/users';
+import { Lab, LabService } from '../../services/lab';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,6 +20,7 @@ export class DashboardComponent implements OnInit {
   equipment: Equipment[] = [];
   reservations: Reservation[] = [];
   users: User[] = [];
+  labs: Lab[] = [];
   metrics = { equipment: 0, activeBookings: 0, pendingApprovals: 0, users: 0 };
   activeTab = 'labs';
   page = 1;
@@ -29,10 +31,12 @@ export class DashboardComponent implements OnInit {
   availability = '';
   sort = 'newest';
   selected: Equipment | null = null;
-  modalMode: 'booking' | 'user' | 'editUser' | 'equipment' = 'booking';
+  modalMode: 'booking' | 'user' | 'editUser' | 'equipment' | 'lab' = 'booking';
   newUser = { name: '', email: '', password: '', role: 'staff' as User['role'] };
   editingUser: User | null = null;
   newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
+  newLab = { name: '', capacity: 1, equipment: '', description: '', status: 'available' as 'available' | 'maintenance' };
+  newLabPhoto: File | null = null;
   calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   booking = { startDate: '', endDate: '', notes: '' };
   loading = false;
@@ -44,11 +48,13 @@ export class DashboardComponent implements OnInit {
   private reservationService = inject(ReservationService);
   private router = inject(Router);
   private usersService = inject(UsersService);
+  private labService = inject(LabService);
 
   ngOnInit(): void {
     this.user = this.auth.getUser();
     this.loadEquipment();
     this.loadReservations();
+    this.loadLabs();
     if (this.isAdmin) {
       fetch('http://localhost:5000/api/dashboard/metrics', {
         headers: { Authorization: `Bearer ${this.auth.getToken()}` }
@@ -116,6 +122,37 @@ export class DashboardComponent implements OnInit {
     this.modalMode = 'equipment';
     this.newEquipment = { name: '', category: '', description: '', condition: 'good', availability: 'available' };
     this.error = '';
+  }
+
+  openLabModal(): void {
+    this.modalMode = 'lab';
+    this.newLab = { name: '', capacity: 1, equipment: '', description: '', status: 'available' };
+    this.newLabPhoto = null;
+    this.error = '';
+  }
+
+  onLabPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.newLabPhoto = input.files?.[0] || null;
+  }
+
+  submitLab(): void {
+    this.labService.create({ ...this.newLab, photo: this.newLabPhoto }).subscribe({
+      next: () => {
+        this.modalMode = 'booking';
+        this.newLabPhoto = null;
+        this.message = 'Lab added successfully.';
+        this.loadLabs();
+      },
+      error: (error) => this.error = error.error?.message || 'Unable to add lab'
+    });
+  }
+
+  loadLabs(): void {
+    this.labService.list().subscribe({
+      next: (response) => this.labs = response.data,
+      error: (error) => this.error = error.error?.message || 'Unable to load labs'
+    });
   }
 
   submitUser(): void {
