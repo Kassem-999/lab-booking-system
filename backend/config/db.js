@@ -21,10 +21,20 @@ const connectDB = async () => {
         name VARCHAR(120) NOT NULL,
         email VARCHAR(190) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        role VARCHAR(20) NOT NULL DEFAULT 'student',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
+    `);
+    await connection.query(`
+      ALTER TABLE users
+      MODIFY role VARCHAR(20) NOT NULL DEFAULT 'student'
+    `);
+    await connection.query(`
+      UPDATE users
+      SET role = 'student'
+      WHERE LOWER(TRIM(role)) IN ('', 'user')
+         OR LOWER(TRIM(role)) NOT IN ('admin', 'staff', 'student')
     `);
     await connection.query(`
       CREATE TABLE IF NOT EXISTS labs (
