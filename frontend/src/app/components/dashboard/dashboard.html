@@ -1,5 +1,8 @@
-<div class="app-shell">
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed">
   <aside class="sidebar">
+    <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+      {{ sidebarCollapsed ? '»' : '«' }}
+    </button>
     <div class="brand">
       <div class="brand-mark">L</div>
       <div><strong>LabSync</strong><small>Lab Booking System</small></div>
@@ -56,19 +59,40 @@
         <select [(ngModel)]="availability" (ngModelChange)="loadEquipment()"><option value="">All statuses</option><option value="available">Available</option><option value="unavailable">Unavailable</option><option value="maintenance">Maintenance</option></select>
         <select [(ngModel)]="sort" (ngModelChange)="loadEquipment()"><option value="newest">Sort by newest</option><option value="alphabetical">Alphabetical</option><option value="availability">Availability</option></select>
         <button class="primary-button" (click)="isAdmin && activeTab === 'users' ? openUserModal() : isManager ? openEquipmentModal() : equipment.length ? openBooking(equipment[0]) : null">{{ isAdmin && activeTab === 'users' ? '+ Add Staff' : isManager ? '+ Add Equipment' : '+ New Reservation' }}</button>
+        <button *ngIf="isAdmin" class="secondary-button" (click)="openLabModal()">+ Add Lab</button>
       </div>
 
       <div *ngIf="activeTab === 'labs' || activeTab === 'equipment'">
         <div class="table-heading"><div><h2>Labs &amp; equipment</h2><p>Browse available resources and request access.</p></div><select [(ngModel)]="category" (ngModelChange)="loadEquipment()"><option value="">All categories</option><option value="camera">Cameras</option><option value="3d-printer">3D printers</option><option value="lab-kit">Lab kits</option></select></div>
         <div *ngIf="loading" class="empty-state">Loading catalog...</div>
-        <div *ngIf="!loading && !equipment.length" class="empty-state">No equipment matches your filters.</div>
-        <div class="data-table" *ngIf="!loading && equipment.length">
+        <div *ngIf="!loading && !equipment.length && !labs.length" class="empty-state">No labs or equipment match your filters.</div>
+        <div class="data-table" *ngIf="!loading && (equipment.length || labs.length)">
           <div class="table-row table-header"><span>Equipment</span><span>Category</span><span>Condition</span><span>Status</span><span>Action</span></div>
+          <div class="table-row lab-row" *ngFor="let lab of labs">
+            <button type="button" class="equipment-cell resource-link" (click)="openDetail(lab)">
+              <img *ngIf="lab.imageUrl" class="resource-image" [src]="'http://localhost:5000' + lab.imageUrl" [alt]="lab.name" />
+              <span *ngIf="!lab.imageUrl" class="equipment-avatar">L</span>
+              <span><strong>{{ lab.name }}</strong><small>{{ lab.description || 'Laboratory' }} · Capacity {{ lab.capacity }}</small></span>
+            </button>
+            <span>Lab</span><span>{{ lab.capacity }} places</span>
+            <span><span class="status-pill" [class]="lab.availability">{{ lab.availability }}</span></span>
+            <span class="actions">
+              <button type="button" class="row-action" (click)="openDetail(lab)">View</button>
+              <button *ngIf="isManager" type="button" class="row-action" (click)="openEditLab(lab)">Edit</button>
+            </span>
+          </div>
           <div class="table-row" *ngFor="let item of equipment">
-            <span class="equipment-cell"><span class="equipment-avatar">{{ item.name.charAt(0) | uppercase }}</span><span><strong>{{ item.name }}</strong><small>{{ item.description || 'University lab resource' }}</small></span></span>
+            <button type="button" class="equipment-cell resource-link" (click)="openDetail(item)">
+              <img *ngIf="item.imageUrl" class="resource-image" [src]="'http://localhost:5000' + item.imageUrl" [alt]="item.name" />
+              <span *ngIf="!item.imageUrl" class="equipment-avatar">{{ item.name.charAt(0) | uppercase }}</span>
+              <span><strong>{{ item.name }}</strong><small>{{ item.description || 'University lab resource' }}</small></span>
+            </button>
             <span>{{ item.category | titlecase }}</span><span>{{ item.condition | titlecase }}</span>
             <span><span class="status-pill" [class]="item.availability">{{ item.availability }}</span></span>
-            <span><button class="row-action" [disabled]="item.availability !== 'available'" (click)="openBooking(item)">{{ item.availability === 'available' ? 'Reserve' : 'Unavailable' }}</button></span>
+            <span class="actions">
+              <button class="row-action" [disabled]="item.availability !== 'available'" (click)="openBooking(item)">{{ item.availability === 'available' ? 'Reserve' : 'Unavailable' }}</button>
+              <button *ngIf="isManager" type="button" class="row-action" (click)="openEditEquipment(item)">Edit</button>
+            </span>
           </div>
         </div>
         <footer class="pagination"><span>Showing {{ totalItems ? 1 : 0 }}-{{ equipment.length }} of {{ totalItems }} items</span><div><button (click)="setPage(page - 1)" [disabled]="page === 1">Previous</button><button class="page-number">{{ page }}</button><button (click)="setPage(page + 1)" [disabled]="page === pageCount">Next</button></div></footer>
@@ -113,10 +137,19 @@
   </main>
 </div>
 
-<div class="modal-backdrop" *ngIf="selected || modalMode === 'user' || modalMode === 'editUser' || modalMode === 'equipment'">
-  <form class="modal" (ngSubmit)="modalMode === 'booking' ? submitBooking() : modalMode === 'user' ? submitUser() : modalMode === 'editUser' ? submitEditUser() : submitEquipment()">
-    <div class="modal-heading"><div><span class="overline">{{ modalMode === 'user' || modalMode === 'editUser' ? 'ADMINISTRATION' : modalMode === 'equipment' ? 'INVENTORY' : 'NEW RESERVATION' }}</span><h2>{{ modalMode === 'user' ? 'Add staff member' : modalMode === 'editUser' ? 'Edit user' : modalMode === 'equipment' ? 'Add equipment' : selected?.name }}</h2></div><button type="button" class="close-button" (click)="selected = null; editingUser = null; modalMode = 'booking'">×</button></div>
+<div class="modal-backdrop" *ngIf="selected || detailItem || modalMode === 'user' || modalMode === 'editUser' || modalMode === 'equipment' || modalMode === 'editEquipment' || modalMode === 'lab' || modalMode === 'editLab'">
+  <form class="modal" [class.detail-modal]="modalMode === 'detail'" (ngSubmit)="modalMode === 'booking' ? submitBooking() : modalMode === 'user' ? submitUser() : modalMode === 'editUser' ? submitEditUser() : modalMode === 'editEquipment' ? submitEditEquipment() : modalMode === 'lab' ? submitLab() : modalMode === 'editLab' ? submitEditLab() : submitEquipment()">
+    <div class="modal-heading"><div><span class="overline">{{ modalMode === 'detail' ? 'RESOURCE DETAILS' : modalMode === 'user' || modalMode === 'editUser' ? 'ADMINISTRATION' : modalMode === 'equipment' || modalMode === 'editEquipment' ? 'INVENTORY' : modalMode === 'lab' || modalMode === 'editLab' ? 'LABORATORY' : 'NEW RESERVATION' }}</span><h2>{{ modalMode === 'detail' ? detailItem?.name : modalMode === 'user' ? 'Add staff member' : modalMode === 'editUser' ? 'Edit user' : modalMode === 'editEquipment' ? 'Edit equipment' : modalMode === 'equipment' ? 'Add equipment' : modalMode === 'editLab' ? 'Edit lab' : modalMode === 'lab' ? 'Add lab' : selected?.name }}</h2></div><button type="button" class="close-button" (click)="selected = null; detailItem = null; editingUser = null; editingEquipment = null; editingLab = null; modalMode = 'booking'">×</button></div>
     <div *ngIf="error" class="notice error">{{ error }}</div>
+    <ng-container *ngIf="modalMode === 'detail' && detailItem">
+      <img *ngIf="detailItem.imageUrl" class="detail-image" [src]="'http://localhost:5000' + detailItem.imageUrl" [alt]="detailItem.name" />
+      <div *ngIf="!detailItem.imageUrl" class="detail-placeholder">{{ detailItem.name.charAt(0) | uppercase }}</div>
+      <p class="detail-description">{{ detailItem.description || 'University laboratory resource.' }}</p>
+      <div class="detail-meta">
+        <span>Status: <strong>{{ detailItem.availability || 'available' }}</strong></span>
+        <span *ngIf="isLabDetail">Capacity: <strong>{{ isLabDetail ? $any(detailItem).capacity : '' }}</strong></span>
+      </div>
+    </ng-container>
     <ng-container *ngIf="modalMode === 'booking'">
       <label>Start date<input type="date" name="startDate" [(ngModel)]="booking.startDate" required /></label>
       <label>End date<input type="date" name="endDate" [(ngModel)]="booking.endDate" required /></label>
@@ -133,12 +166,26 @@
       <label>Email<input type="email" name="editUserEmail" [(ngModel)]="newUser.email" required placeholder="user@university.edu" /></label>
       <label>Role<select name="editUserRole" [(ngModel)]="newUser.role"><option value="student">Student</option><option value="staff">Staff</option><option value="admin">Admin</option><option value="user">User</option></select></label>
     </ng-container>
-    <ng-container *ngIf="modalMode === 'equipment'">
+    <ng-container *ngIf="modalMode === 'equipment' || modalMode === 'editEquipment'">
       <label>Name<input name="equipmentName" [(ngModel)]="newEquipment.name" required placeholder="Sony camera, 3D printer..." /></label>
       <label>Category<input name="equipmentCategory" [(ngModel)]="newEquipment.category" required placeholder="camera" /></label>
       <label>Description<textarea name="equipmentDescription" [(ngModel)]="newEquipment.description"></textarea></label>
       <label>Condition<select name="equipmentCondition" [(ngModel)]="newEquipment.condition"><option value="excellent">Excellent</option><option value="good">Good</option><option value="maintenance">Maintenance</option></select></label>
+      <label>Status<select name="equipmentAvailability" [(ngModel)]="newEquipment.availability"><option value="available">Available</option><option value="unavailable">Unavailable</option><option value="maintenance">Maintenance</option></select></label>
+      <label>Photo<input type="file" name="equipmentImage" accept="image/*" (change)="onEquipmentImage($event)" /></label>
     </ng-container>
-    <div class="modal-actions"><button type="button" class="secondary-button" (click)="selected = null; editingUser = null; modalMode = 'booking'">Cancel</button><button class="primary-button" type="submit">{{ modalMode === 'editUser' ? 'Save changes' : modalMode === 'user' ? 'Create user' : modalMode === 'equipment' ? 'Add equipment' : 'Submit request' }}</button></div>
+    <ng-container *ngIf="modalMode === 'lab' || modalMode === 'editLab'">
+      <label>Name<input name="labName" [(ngModel)]="newLab.name" required placeholder="Physics laboratory" /></label>
+      <label>Capacity<input type="number" name="labCapacity" [(ngModel)]="newLab.capacity" min="1" required /></label>
+      <label>Equipment<input name="labEquipment" [(ngModel)]="newLab.equipment" placeholder="Microscope, 3D printer" /></label>
+      <label>Description<textarea name="labDescription" [(ngModel)]="newLab.description"></textarea></label>
+      <label>Status<select name="labAvailability" [(ngModel)]="newLab.isAvailable"><option [ngValue]="true">Available</option><option [ngValue]="false">Unavailable</option></select></label>
+      <label>Photo<input type="file" name="labImage" accept="image/*" (change)="onLabImage($event)" /></label>
+    </ng-container>
+    <div class="modal-actions">
+      <button type="button" class="secondary-button" (click)="selected = null; detailItem = null; editingUser = null; editingEquipment = null; editingLab = null; modalMode = 'booking'">Close</button>
+      <button *ngIf="modalMode === 'detail' && detailItem && detailItem.availability === 'available' && isEquipmentDetail" type="button" class="primary-button" (click)="reserveDetailItem()">Reserve</button>
+      <button *ngIf="modalMode !== 'detail'" class="primary-button" type="submit">{{ modalMode === 'editUser' ? 'Save changes' : modalMode === 'editEquipment' ? 'Save changes' : modalMode === 'editLab' ? 'Save changes' : modalMode === 'user' ? 'Create user' : modalMode === 'equipment' ? 'Add equipment' : modalMode === 'lab' ? 'Add lab' : 'Submit request' }}</button>
+    </div>
   </form>
 </div>

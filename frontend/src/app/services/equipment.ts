@@ -25,4 +25,10 @@ export class EquipmentService {
   create(data: { name: string; category: string; description: string; condition: string; availability: string }): Observable<{ data: Equipment }> {
     return this.http.post<{ data: Equipment }>(this.apiUrl, data);
   }
+  createWithImage(formData: FormData): Observable<{ data: Equipment }> {
+    return this.http.post<{ data: Equipment }>(this.apiUrl, formData);
+  }
+  updateWithImage(id: string, formData: FormData): Observable<{ data: Equipment }> {
+    return this.http.put<{ data: Equipment }>(`${this.apiUrl}/${id}`, formData);
+  }
 }

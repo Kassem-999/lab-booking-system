@@ -42,9 +42,19 @@ const connectDB = async () => {
         name VARCHAR(150) NOT NULL UNIQUE,
         capacity INT NOT NULL DEFAULT 1,
         equipment TEXT,
+        description TEXT,
+        image_url VARCHAR(255),
         is_available TINYINT(1) NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+    await connection.query(`
+      ALTER TABLE labs
+      ADD COLUMN IF NOT EXISTS description TEXT
+    `);
+    await connection.query(`
+      ALTER TABLE labs
+      ADD COLUMN IF NOT EXISTS image_url VARCHAR(255)
     `);
     await connection.query(`
       CREATE TABLE IF NOT EXISTS equipment (
